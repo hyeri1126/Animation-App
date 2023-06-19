@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { TouchableOpacity } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Pressable, TouchableOpacity } from 'react-native';
 import { Animated } from 'react-native';
 import styled from 'styled-components/native';
 
@@ -16,28 +16,48 @@ const Box = styled.View`
 const AnimatedBox = Animated.createAnimatedComponent(Box);
 
 export default function App() {
-  const Y = new Animated.Value(0)
+  const [up, setUp] = useState(false);
+  const POSITION = useRef(new Animated.ValueXY({x:0, y:200})).current;
   const moveUp = () => {
-    Animated.spring(Y, {
-      toValue:-200,
-      bounciness:30,
-      useNativeDriver:true,
-    }).start();
+    Animated.timing(POSITION, {
+      toValue: up ? 200 : -200,
+      useNativeDriver:false,
+      duration:1000,
+    }).start(()=>setUp((prev)=>!prev));
+   
   };
-  console.log(Y)
-  Y.addListener(()=>console.log(Y))
+  const rotation = POSITION.y.interpolate({
+    inputRange:[-200,200],
+    outputRange:["-360deg", "360deg"]
+  })
+  // const opacityValue = Y_POSITION.interpolate({
+  //   inputRange: [-200, 0, 200],
+  //   outputRange: [1, 0.5, 1],
+  // })
+  const borderRadius = POSITION.y.interpolate({
+    inputRange: [-200, 200 ],
+    outputRange: [100, 0 ]
+  })
+  const bgColor = POSITION.y.interpolate({
+    inputRange:[-200,200],
+    outputRange:["rgb(255,99,71)", "rgb(71,166,255)"]
+  })
+
   return (
-    <Container>
-      <TouchableOpacity onPress={moveUp} >
+      <TouchableOpacity 
+        style={{flex:1, alignItems:'center', justifyContent:'center'}} 
+        onPress={moveUp} 
+      >
         <AnimatedBox
           style={{
-            transform : [{translateY:Y}]
+            borderRadius,
+            backgroundColor:bgColor,
+            transform : [{rotateY:rotation},{translateY:POSITION.y}],
           }}>
             
         </AnimatedBox>
       </TouchableOpacity>
      
-    </Container>
   );
 }
 
