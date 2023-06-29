@@ -1,158 +1,164 @@
 import React, { useRef, useState } from 'react';
-import { Dimensions, Pressable, TouchableOpacity , Animated, ProgressBarAndroidBase, View, PanResponder, Text} from 'react-native';
+import { Dimensions, Pressable, TouchableOpacity , Animated, ProgressBarAndroidBase, View, PanResponder, Text, Easing} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import icons from './icons';
-
 import styled from 'styled-components/native';
 
+const BLACK_COLOR = "#1e272e";
+const GREY = "#485460";
+const GREEN = "#2ECC71";
+const RED = "#E74C3C";
+
+
+// Animate할 대상 :  Icon Card와 Text Circle -> Animated.View(애니메이션 컴포넌트)로 만들기
 const Container = styled.View`
   flex:1;
+  background-color: ${BLACK_COLOR};
+`
+const Edge = styled.View `
+  flex: 3;
+  /* background-color: ${RED}; */
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+`
+const WordContainer = styled(Animated.createAnimatedComponent(View))`
+  height: 100px;
   justify-content: center;
   align-items: center;
-  background-color: blue;
+  background-color: ${GREY};
+  border-radius: 50px;
 `
-const Card = styled(Animated.createAnimatedComponent(View))`
-  background-color: white;
-  width: 250px;
-  height: 250px;
+const Word = styled.Text`
+  font-size: 20px;
+  font-weight:600;
+  padding: 10px 20px;
+  color: ${props => props.color};
+`
+const Center = styled.View`
+  flex:5;
   justify-content: center;
   align-items: center;
-  border-radius: 12px;
-  box-shadow: 1px 1px 5px rgba(1, 1, 1 ,0.3);
-  position: absolute;
+  z-index: 10;
 `
-const Btn = styled.TouchableOpacity`
-  margin: 0 5px;
+const IconCard = styled(Animated.createAnimatedComponent(View))`
+  padding: 5px 10px;
 `
-const BtnContaienr = styled.View`
-  flex-direction: row;
-  flex: 1;
-  margin-top: -100px;
-`
-const CardContainter = styled.View`
-  flex:3;
-  justify-content: center;
-  align-items: center;
-`
+
 export default function App() {
-  
-  // Values
+  // Animation Values -> 이 값들을 Animated 컴포넌트들과 연결해야함. 
   const scale = useRef(new Animated.Value(1)).current;
-  const position = useRef(new Animated.Value(0)).current;
-  // InterPolates
-  const rotation = position.interpolate({
-    inputRange: [-250, 250],
-    outputRange: ["-15deg", "15deg"],
-    //extrapolate에서는 inputRange 바깥으로 나갔을 때 어떻게 처리할지 명시할 수 있음
-  });
-  const secondScale = position.interpolate({
-    inputRange:[-280, 0, 280],
-    outputRange:[1, 0.5, 1],
+  const position = useRef(new Animated.ValueXY({x:0, y:0})).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  // Interpolation 
+  const scaleOne = position.y.interpolate({
+    inputRange:[-350, -220],
+    outputRange:[1.5, 1],
     extrapolate:"clamp",
   })
-  //Animations
-  //Animated.spring은 애니메이션이 완료되는데에 시간이 좀 걸림. bounce 효과 때문에! 
-  //Animated.spring을 빠르게 만드는 옵션 두가지 : restSpeedThreshold, restDisplacementThreshold 
-  // -> 둘을 조합해서 사용하면 애니메이션을 빨리 끝낼 수 있음. 
+  const scaleTwo = position.y.interpolate({
+    inputRange:[230, 350],
+    outputRange:[1, 1.5],
+    extrapolate:"clamp",
+  })
+  // Animations 
   const onPressIn = Animated.spring(scale, {
-      toValue:0.95, 
-      useNativeDriver:true,
+    toValue:0.8,
+    useNativeDriver:true,
   });
   const onPressOut = Animated.spring(scale,{
-    toValue:1, 
+    toValue:1,
     useNativeDriver:true,
   });
-  const goCenter = Animated.spring(position, {
+  const goHome = Animated.spring(position,{
     toValue:0,
     useNativeDriver:true,
-  });
-  const goLeft = Animated.spring(position, {
-    toValue:-500,
-    tension: 1,
+  })
+  const onDrop = Animated.timing(scale,{
+    toValue:0,
     useNativeDriver:true,
-    restSpeedThreshold:100,
-    restDisplacementThreshold:100,
-  });
-  const goRight = Animated.spring(position,{
-    toValue:500,
-    tension:1,
+    duration:200,
+    easing: Easing.linear,
+  })
+  const onDropOpacity =  Animated.timing(opacity, {
+    toValue:0,
+    duration:200,
+    easing: Easing.linear,
     useNativeDriver:true,
-    restSpeedThreshold:100,
-    restDisplacementThreshold:100,
-  });
-  // State 
-  const [index, setIndex] = useState(0);
-  // 카드가 옆으로 사라질 때 index 1 올려주는 함수
-  const onDismiss = () => {
-    scale.setValue(1);
-    position.setValue(0);
-    setIndex((prev) => prev + 1);
-  }
-  const closePress = () => {
-    goLeft.start(onDismiss);
-  }
-  const checkPress = () => {
-    goRight.start(onDismiss);
-  }
-  
-  //Pan Responders
-  const panResponder = useRef(
-    PanResponder.create({
-      //터치에 의해 동작하겠다는 의미
-      onStartShouldSetPanResponder : () => true,
-      //panResponder 내에서 사용자가 터치하기 시작하면 호출되는 두가지 함수가 있음. -> onPanRespond,erGrant,onPanResponderRelease
-      onPanResponderMove: (_, {dx}) => {
-        position.setValue(dx);
-      },
-      onPanResponderGrant: () => onPressIn.start(),
-      onPanResponderRelease: (_,{dx}) => {
-        if(dx < -230){
-          goLeft.start(onDismiss);
-        } else if(dx > 230) {
-          goRight.start(onDismiss);
-        } else {
-          Animated.parallel([onPressOut,goCenter]).start();
-        }
+  })
+  // Pan ResPonders (사용자의 터치 인식), panResponder를 생성할 때 여러가지 함수를 받는데 View에게 넘겨줘야함. 
+  const panResponder = useRef(PanResponder.create({
+    //손가락 이벤트를 감지할 것인가 말 것인가를 정하는 함수
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: (_, {dx, dy}) => {
+      position.setValue({x:dx, y:dy});
+    },
+    //panResponder가 움직이기 시작하면 onPanResponderGrant를 실행시킴
+    onPanResponderGrant:() => {
+      //scale을 위한 애니메이션 
+      onPressIn.start();
+    },
+    onPanResponderRelease:(_, {dy}) => {
+      if(dy < -250 || dy > 250 ){
+        Animated.sequence([
+          Animated.parallel([onDropOpacity,onDrop]),
+          Animated.timing(position,{
+            toValue:0,
+            duration:200,
+            easing: Easing.linear,
+            useNativeDriver:true,
+          })
+        ]).start(nextIcon);
+      
+      } else {
         
-      },
-    })
-  ).current;
+        Animated.parallel([onPressOut, goHome]).start();
+      }
+    }
   
+  })).current;
+  // State
+  const [index, setIndex] = useState(0);
+  const nextIcon = () => {
+    setIndex((prev) => prev+1);
+    Animated.parallel([
+      Animated.spring(scale,{toValue:1, useNativeDriver:true}),
+      Animated.spring(opacity, {toValue:1, useNativeDriver:true})
+    ]).start();
+    
+  }
   return (
       <Container>
-        <CardContainter >
-          <Card 
-            style={{
-              transform:[
-                {scale:secondScale}
-              ]
-            }}>
-              <Text>Back Card</Text>
-            <Ionicons name={icons[index+1]} size={98} color="#192a56" />
-          </Card>
-          <Card 
+        <Edge>
+          <WordContainer style={{
+            transform:[
+              {scale:scaleOne}
+            ]
+          }}
+          >
+            <Word color={GREEN}>I Know</Word>
+          </WordContainer>
+        </Edge>
+        <Center>
+          <IconCard 
             {...panResponder.panHandlers}
             style={{
-              transform:[
-                {scale}, 
-                {translateX:position}, 
-                {rotateZ:rotation},
-              ]
-            }}>
-              <Text>Front Card</Text>
-            <Ionicons name={icons[index]} size={98} color="#192a56" />
-          </Card>
-        </CardContainter>
-        
-        <BtnContaienr>
-          <Btn onPress={closePress}>
-            <Ionicons name='close-circle' color="white" size={42}  />
-          </Btn>
-          <Btn onPress={checkPress}>
-            <Ionicons name='checkmark-circle' color="white" size={42}  />
-          </Btn>
-        </BtnContaienr>
-       
+              opacity:opacity,
+              transform:[...position.getTranslateTransform(),{scale}]
+            }}
+          >
+            <Ionicons name={icons[index]} color="white" size={140} />
+          </IconCard>
+        </Center>
+        <Edge>
+          <WordContainer style={{
+            transform:[
+              {scale:scaleTwo}
+            ]
+          }}>
+            <Word color={RED}>I don't know</Word>
+          </WordContainer>
+        </Edge>
       </Container>
      
   );
